@@ -23,4 +23,4 @@ function startStream(url) {
 }
 
 // 🔴 PUT YOUR STREAM URL
-startStream("http://as-hls-ww-live.akamaized.net/pool_87948813/live/ww/bbc_world_service/bbc_world_service.isml/bbc_world_service-audio%3d96000.norewind.m3u8");
+startStream("https://stream.zigmapos.com/stream");

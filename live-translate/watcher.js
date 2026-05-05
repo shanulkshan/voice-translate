@@ -7,11 +7,11 @@ const tts = require('./tts');
 
 const CHUNK_DIR = './chunks';
 
-// prevent duplicates
 const PROCESSED = new Set();
-
-// prevent overlapping execution
 let isProcessing = false;
+
+// 🔥 NEW: sentence buffer
+let buffer = "";
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -23,7 +23,6 @@ async function processChunks() {
 
   try {
     let files = fs.readdirSync(CHUNK_DIR);
-
     if (files.length === 0) {
       isProcessing = false;
       return;
@@ -39,16 +38,13 @@ async function processChunks() {
       return;
     }
 
-    // mark immediately
     PROCESSED.add(file);
 
     console.log(`📥 Processing: ${file}`);
 
     const text = await speechToText(filePath);
 
-    // 🔥 skip only real empty audio
     if (!text || text.trim().length < 3) {
-      console.log("⚠️ Empty audio skipped");
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       isProcessing = false;
       return;
@@ -56,23 +52,32 @@ async function processChunks() {
 
     console.log("📝 EN:", text);
 
-    const sinhala = await translate(text);
+    // 🔥 ADD TO BUFFER
+    buffer += " " + text;
 
-    if (!sinhala || sinhala.includes("⚠️")) {
-      console.log("⚠️ Translation failed");
-      isProcessing = false;
-      return;
+    // 🔥 Only process when sentence is ready
+    if (
+      text.endsWith('.') ||
+      text.endsWith('?') ||
+      text.endsWith('!') ||
+      buffer.length > 80
+    ) {
+      console.log("🧠 Processing sentence:", buffer);
+
+      const sinhala = await translate(buffer);
+
+      if (!sinhala || sinhala.includes("⚠️")) {
+        console.log("⚠️ Translation failed");
+      } else {
+        console.log("🌐 SI:", sinhala);
+        await tts(sinhala);
+      }
+
+      buffer = ""; // reset
     }
 
-    console.log("🌐 SI:", sinhala);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
-    await tts(sinhala);
-
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    // 🔥 minimal delay (almost real-time)
     await sleep(500);
 
   } catch (err) {

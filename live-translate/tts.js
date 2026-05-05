@@ -12,15 +12,35 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 
 let counter = 0;
 
+// 🔥 CLEAN TEXT FUNCTION
+function cleanSinhala(text) {
+  return text
+    .replace(/[A-Za-z]/g, '')     // remove English letters
+    .replace(/[*#@\-_:]/g, '')    // remove symbols
+    .replace(/\s+/g, ' ')         // clean extra spaces
+    .trim();
+}
+
 async function synthesizeSinhala(text) {
   try {
+    // 🔥 Clean before speaking
+    const cleanText = cleanSinhala(text);
+
+    if (!cleanText || cleanText.length < 3) {
+      console.log("⚠️ Skipping invalid text");
+      return;
+    }
+
     const request = {
-      input: { text },
+      input: { text: cleanText },
       voice: {
         languageCode: 'si-LK',
+        ssmlGender: 'FEMALE'
       },
       audioConfig: {
-        audioEncoding: 'MP3', // keep MP3 for now
+        audioEncoding: 'MP3',
+        speakingRate: 0.95,
+        pitch: 0.0
       },
     };
 
@@ -33,7 +53,8 @@ async function synthesizeSinhala(text) {
 
     fs.writeFileSync(fileName, response.audioContent, 'binary');
 
-    console.log("🔊 Created:", fileName);
+    console.log("🔊 Speaking:", cleanText);
+    console.log("💾 Saved:", fileName);
 
     return fileName;
 

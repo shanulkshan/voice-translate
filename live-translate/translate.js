@@ -1,11 +1,8 @@
 require('dotenv').config();
-
 const fetch = require('node-fetch');
 
-// 🔐 Load API key securely
 const API_KEY = process.env.GEMINI_API_KEY;
 
-// 🔥 Gemini translation function
 async function translate(text) {
   try {
     const res = await fetch(
@@ -20,7 +17,17 @@ async function translate(text) {
             {
               parts: [
                 {
-                  text: `Translate this into Sinhala (only output translation, no explanation): ${text}`
+                  text: `Translate the following into Sinhala.
+
+STRICT RULES:
+- Output ONLY Sinhala text
+- NO English
+- NO explanations
+- NO formatting
+- NO symbols like *, #, -, :
+- Just one clean Sinhala sentence
+
+Text: ${text}`
                 }
               ]
             }
@@ -31,22 +38,22 @@ async function translate(text) {
 
     const data = await res.json();
 
-    // 🔍 Debug (optional)
-    console.log("RAW RESPONSE:", JSON.stringify(data, null, 2));
-
-    // ✅ Extract translated text safely
-    const translated =
+    let translated =
       data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!translated) {
-      return "⚠️ No translation returned";
-    }
+    if (!translated) return "⚠️";
 
-    return translated.trim();
+    // 🔥 CLEAN EXTRA SYMBOLS (backup safety)
+    translated = translated
+      .replace(/[*#\-_:]/g, '') // remove symbols
+      .replace(/[A-Za-z]/g, '') // remove English letters
+      .trim();
+
+    return translated;
 
   } catch (err) {
     console.error("❌ Translate Error:", err.message);
-    return "⚠️ Translation failed";
+    return "⚠️";
   }
 }
 
